@@ -609,9 +609,9 @@ _check_device()
 	fi
 
 	case "$FSTYP" in
-	9p|fuse|tmpfs|virtiofs|afs)
-		# 9p, fuse, virtiofs and afs mount tags are just plain strings,
-		# so anything is allowed tmpfs doesn't use mount source, ignore
+	9p|cxlfs|fuse|tmpfs|virtiofs|afs)
+		# 9p, cxlfs, fuse, virtiofs and afs mount tags are just plain
+		# strings, so anything is allowed; tmpfs doesn't use mount source.
 		;;
 	ceph)
 		# ceph has two different possible syntaxes for mount devices. The
@@ -643,6 +643,14 @@ _canonicalize_mountpoint()
 {
 	local name=$1
 	local dir=$2
+
+	if [ "$FSTYP" = "cxlfs" ]; then
+		# The preload layer is the filesystem under test.  Keep harness
+		# mountpoint canonicalization on the host namespace so a failed test
+		# cannot corrupt TEST_DIR/SCRATCH_MNT for later tests.
+		CXLFS_PRELOAD_DISABLE=1 LD_PRELOAD= readlink -e "$dir" && return 0
+		_fatal "common/config: $name ($dir) is not a directory"
+	fi
 
 	if [ -d "$dir" ]; then
 		# this follows symlinks and removes all trailing "/"s
@@ -923,6 +931,9 @@ else
 	# common/rc after re-sourcing the HOST_OPTIONS config file.
 	# Because of this re-sourcing, we need to re-canonicalize the configured
 	# mount points and re-override TEST/SCRATCH_DEV overlay vars.
+	if [ "$FSTYP" = "cxlfs" ] && [ -f "$HOST_OPTIONS" ]; then
+		. $HOST_OPTIONS
+	fi
 
 	# canonicalize the mount points
 	# this follows symlinks and removes all trailing "/"s
@@ -937,6 +948,18 @@ else
 fi
 
 _canonicalize_devices
+
+_cxlfs_reload_config()
+{
+	if [ "$FSTYP" != "cxlfs" ] || [ ! -f "$HOST_OPTIONS" ]; then
+		return 0
+	fi
+
+	. $HOST_OPTIONS
+	export TEST_DIR=`_canonicalize_mountpoint TEST_DIR $TEST_DIR`
+	export SCRATCH_MNT=`_canonicalize_mountpoint SCRATCH_MNT $SCRATCH_MNT`
+}
+
 # mkfs.xfs checks for TEST_DEV before permitting < 300M filesystems. TEST_DIR
 # and QA_CHECK_FS are also checked by mkfs.xfs, but already exported elsewhere.
 export TEST_DEV

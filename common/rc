@@ -849,6 +849,9 @@ _test_mkfs()
     9p)
 	# do nothing for 9p
 	;;
+    cxlfs)
+	# do nothing for preload-backed CXLFS
+	;;
     fuse)
 	# do nothing for fuse
 	;;
@@ -903,6 +906,9 @@ _try_mkfs_dev()
 	;;
     9p)
 	# do nothing for 9p
+	;;
+    cxlfs)
+	# do nothing for preload-backed CXLFS
 	;;
     fuse)
 	# do nothing for fuse
@@ -981,7 +987,7 @@ _scratch_mkfs()
 	local mkfs_status
 
 	case $FSTYP in
-	nfs*|afs|cifs|ceph|overlay|glusterfs|pvfs2|9p|fuse|virtiofs)
+	nfs*|afs|cifs|ceph|overlay|glusterfs|pvfs2|9p|cxlfs|fuse|virtiofs)
 		# unable to re-create this fstyp, just remove all files in
 		# $SCRATCH_MNT to avoid EEXIST caused by the leftover files
 		# created in previous runs
@@ -1993,7 +1999,7 @@ _require_scratch_nocheck()
 			_notrun "this test requires a valid \$SCRATCH_MNT"
 		fi
 		;;
-	9p|fuse|virtiofs)
+	9p|cxlfs|fuse|virtiofs)
 		if [ -z "$SCRATCH_DEV" ]; then
 			_notrun "this test requires a valid \$SCRATCH_DEV"
 		fi
@@ -2218,7 +2224,7 @@ _require_test()
 			_notrun "this test requires a valid \$TEST_DIR"
 		fi
 		;;
-	9p|fuse|virtiofs)
+	9p|cxlfs|fuse|virtiofs)
 		if [ -z "$TEST_DEV" ]; then
 			_notrun "this test requires a valid \$TEST_DEV"
 		fi
@@ -3674,6 +3680,9 @@ _check_test_fs()
     9p)
 	# no way to check consistency for 9p
 	;;
+    cxlfs)
+	# no fsck hook for preload-backed CXLFS
+	;;
     fuse)
 	# no way to check consistency for fuse
 	;;
@@ -3735,6 +3744,9 @@ _check_dev_fs()
 	;;
     9p)
 	# no way to check consistency for 9p
+	;;
+    cxlfs)
+	# no fsck hook for preload-backed CXLFS
 	;;
     fuse)
 	# no way to check consistency for fuse
